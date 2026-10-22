@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ular Tangga</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Fredoka:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        islamic: {
+                            gold: '#D4AF37',
+                            emerald: '#065F46',
+                            teal: '#0D9488',
+                            light: '#ECFDF5',
+                            dark: '#022C22',
+                            accent: '#F59E0B'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        fredoka: ['Fredoka', 'cursive'],
+                        amiri: ['Amiri', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #0f766e 100%);
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            min-height: 100vh;
+        }
+
+        .font-fredoka { font-family: 'Fredoka', cursive; }
+        .font-amiri { font-family: 'Amiri', serif; }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(6, 78, 59, 0.45);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+        }
+
+        /* Grid Board Styling */
+        #boardGrid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            position: relative;
+        }
+
+        .board-cell {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px;
+            font-size: 10px;
+            font-weight: 700;
+            border: 0.5px solid rgba(212, 175, 55, 0.15);
+            transition: all 0.2s ease;
+        }
+
+        /* Alternating Cell Colors */
+        .cell-even { background: rgba(6, 95, 70, 0.7); color: #f0fdf4; }
+        .cell-odd { background: rgba(4, 120, 87, 0.85); color: #fef08a; }
+        .cell-special { background: rgba(217, 119, 6, 0.8) !important; color: #ffffff !important; }
+
+        /* Canvas Overlay for Ladders and Snakes */
+        #boardCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Player Pawn Tokens */
+        .pawn {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: justify;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: bold;
+            box-shadow: 0 0 8px rgba(0,0,0,0.6);
+            transition: all 0.35s ease-in-out;
+            z-index: 20;
+            border: 2px solid #ffffff;
+        }
+
+        .pawn-p1 { background: #eab308; color: #1c1917; } /* Gold */
+        .pawn-p2 { background: #06b6d4; color: #ffffff; } /* Cyan */
+        .pawn-ai { background: #ec4899; color: #ffffff; } /* Pink AI Ustaz */
+
+        /* Pulsating Glow */
+        .pulse-gold {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); }
+            70% { box-shadow: 0 0 0 14px rgba(212, 175, 55, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+        }
+
+        /* Dice Animation */
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.25); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .rolling {
+            animation: roll 0.5s ease-in-out infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(2, 44, 34, 0.5); }
+        ::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-white flex flex-col justify-between p-2 sm:p-4 min-h-screen">
+
+    <!-- HEADER / NAVBAR -->
+    <header class="w-full max-w-6xl mx-auto flex justify-between items-center py-2.5 px-4 glass-card rounded-2xl mb-3 shadow-lg border border-amber-500/30">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-600 flex items-center justify-center text-xl shadow-md border border-amber-300">
+                🕌
+            </div>
+            <div>
+                <h1 class="font-fredoka text-base sm:text-lg text-amber-300 leading-tight">Ular Tangga Masjid Dunia</h1>
+                <p class="text-[11px] text-emerald-200">Edisi Edukasi Surah Al-Fatihah</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="toggleSound()" class="px-3 py-1.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-xs font-semibold flex items-center gap-1.5 transition border border-emerald-600">
+                <i id="soundIcon" class="fas fa-volume-up text-amber-300"></i>
+                <span class="hidden sm:inline">Suara</span>
+            </button>
+            <button onclick="showMainMenu()" class="px-3 py-1.5 rounded-xl bg-red-600/80 hover:bg-red-500 text-xs font-semibold flex items-center gap-1.5 transition border border-red-400">
+                <i class="fas fa-home"></i>
+                <span class="hidden sm:inline">Menu</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center relative">
+
+        <!-- ================= HALAMAN 1: MENU UTAMA ================= -->
+        <section id="menuPage" class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl text-center max-w-lg mx-auto w-full my-auto border border-amber-500/30">
+            <div class="relative mb-4">
+                <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-400 via-emerald-600 to-teal-900 flex items-center justify-center text-4xl shadow-2xl border-2 border-amber-300">
+                    🕋
+                </div>
+                <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">Edukasi Islami</span>
+            </div>
+
+            <h2 class="font-fredoka text-2xl sm:text-3xl text-amber-300 mb-1">Jelajah Masjid Dunia</h2>
+            <p class="font-amiri text-lg text-amber-200/90 mb-3">سُورَةُ الْفَاتِحَةِ</p>
+            <p class="text-emerald-100 text-xs mb-5 max-w-sm mx-auto leading-relaxed">
+                Jelajahi keindahan masjid-masjid megah di dunia sambil menguji pemahamanmu tentang Surah Al-Fatihah!
+            </p>
+
+            <form onsubmit="event.preventDefault(); startGame();" class="space-y-4 text-left">
+                <!-- Mode Permainan -->
+                <div>
+                    <label class="block text-xs font-semibold text-amber-300 uppercase tracking-wider mb-2">Pilih Mode Permainan</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btnModeSingle" onclick="selectMode('single')" 
+                            class="mode-btn active p-3 rounded-2xl border-2 border-amber-400 bg-amber-500/20 text-center flex flex-col items-center gap-1 transition">
+                            <i class="fas fa-robot text-lg text-amber-300"></i>
+                            <span class="text-xs font-bold">vs Ustaz AI</span>
+                            <span class="text-[10px] text-emerald-200">1 Pemain</span>
+                        </button>
+                        <button type="button" id="btnModeVs" onclick="selectMode('vs')" 
+                            class="mode-btn p-3 rounded-2xl border-2 border-emerald-700 bg-emerald-900/40 text-center flex flex-col items-center gap-1 transition opacity-70">
+                            <i class="fas fa-users text-lg text-cyan-300"></i>
+                            <span class="text-xs font-bold">Tanding (2P)</span>
+                            <span class="text-[10px] text-emerald-200">Multiplayer Lokal</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Nama Pemain 1 -->
+                <div>
+                    <label for="p1Input" class="block text-xs font-semibold text-emerald-200 mb-1" id="labelP1">Nama Pemain 1</label>
+                    <input type="text" id="p1Input" required maxlength="12" placeholder="Masukkan nama..." 
+                        class="w-full px-3.5 py-2 rounded-xl bg-emerald-950/80 border border-emerald-600 focus:border-amber-400 text-white text-xs outline-none transition">
+                </div>
+
+                <!-- Input Nama Pemain 2 (Kondisional) -->
+                <div id="p2InputGroup" class="hidden">
+                    <label for="p2Input" class="block text-xs font-semibold text-cyan-300 mb-1">Nama Pemain 2</label>
+                    <input type="text" id="p2Input" maxlength="12" placeholder="Nama pemain 2..." 
+                        class="w-full px-3.5 py-2 rounded-xl bg-emerald-950/80 border border-emerald-600 focus:border-cyan-400 text-white text-xs outline-none transition">
+                </div>
+
+                <!-- Tombol Start -->
+                <button type="submit" class="w-full py-3 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 font-fredoka text-base text-slate-950 font-bold uppercase tracking-wider hover:opacity-95 transition shadow-xl pulse-gold mt-2">
+                    <i class="fas fa-play me-2"></i> Mulai Permainan
+                </button>
+            </form>
+        </section>
+
+
+        <!-- ================= HALAMAN 2: GAMEPLAY ULAR TANGGA ================= -->
+        <section id="gamePage" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
+            
+            <!-- PANEL KIRI: LOG & INFO MASJID (3 Cols) -->
+            <div class="lg:col-span-3 flex flex-col gap-3 order-2 lg:order-1">
+                <!-- Status Player Turn & Roll Dice -->
+                <div class="glass-card p-3.5 rounded-2xl border border-amber-500/30 text-center space-y-3">
+                    <div class="text-[11px] text-emerald-200 uppercase font-bold tracking-wider">Giliran Lempar Dadu</div>
+                    
+                    <div id="activePlayerBox" class="p-2.5 rounded-xl bg-emerald-950/70 border border-amber-400 flex items-center justify-center gap-3">
+                        <div id="activePawnBadge" class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xs">P1</div>
+                        <span id="activePlayerName" class="font-bold text-amber-300 text-xs sm:text-sm">Pemain 1</span>
+                    </div>
+
+                    <!-- Visual Dadu 3D Dynamic -->
+                    <div class="py-2 flex justify-center items-center gap-3">
+                        <div id="diceCube" class="w-14 h-14 bg-gradient-to-br from-amber-100 to-amber-300 text-slate-900 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-lg border-2 border-amber-400">
+                            🎲
+                        </div>
+                    </div>
+
+                    <button id="rollDiceBtn" onclick="handleRollDice()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-md transition transform active:scale-95">
+                        <i class="fas fa-dice me-1"></i> Kocok Dadu
+                    </button>
+                </div>
+
+                <!-- Info Card Masjid Dunia Saat Ini -->
+                <div class="glass-card p-3.5 rounded-2xl border border-emerald-500/30 flex-1 flex flex-col">
+                    <div class="flex items-center gap-2 mb-2 pb-2 border-b border-emerald-700/60">
+                        <i class="fas fa-mosque text-amber-300 text-sm"></i>
+                        <span class="text-xs font-bold text-amber-300 uppercase">Ensiklopedia Masjid</span>
+                    </div>
+                    <div id="mosqueInfoBox" class="text-xs space-y-1.5 text-emerald-100 flex-1">
+                        <h4 id="mosqueName" class="font-bold text-amber-200 text-sm">Masjidil Haram</h4>
+                        <p id="mosqueLoc" class="text-[11px] text-emerald-300 italic"><i class="fas fa-location-dot me-1"></i>Makkah, Arab Saudi</p>
+                        <p id="mosqueDesc" class="text-[11px] text-slate-200 leading-relaxed mt-1">
+                            Masjid terbesar di dunia dan tempat beradanya Ka'bah, kiblat seluruh umat Islam saat beribadah.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL TENGAH: BOARD ULAR TANGGA (6 Cols) -->
+            <div class="lg:col-span-6 flex flex-col items-center justify-center order-1 lg:order-2">
+                <div class="relative w-full max-w-[500px] aspect-square glass-card p-2 rounded-2xl shadow-2xl border-2 border-amber-400/40">
+                    
+                    <!-- Canvas Layar Tangga/Peruncuran -->
+                    <canvas id="boardCanvas"></canvas>
+
+                    <!-- Grid 100 Petak -->
+                    <div id="boardGrid" class="rounded-xl overflow-hidden border border-amber-500/20">
+                        <!-- Petak-petak di-generate via JavaScript -->
+                    </div>
+
+                    <!-- Layer Tempat Pion -->
+                    <div id="pawnsLayer" class="absolute inset-0 pointer-events-none p-2">
+                        <div id="pawn1" class="pawn pawn-p1">P1</div>
+                        <div id="pawn2" class="pawn pawn-p2">P2</div>
+                        <div id="pawnAI" class="pawn pawn-ai">AI</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL KANAN: STATISTIK & LOG (3 Cols) -->
+            <div class="lg:col-span-3 flex flex-col gap-3 order-3">
+                <!-- Statistik Posisi Pemain -->
+                <div class="glass-card p-3.5 rounded-2xl border border-emerald-500/30 space-y-2">
+                    <div class="text-xs font-bold text-amber-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fas fa-trophy text-amber-400"></i> Posisi Pemain
+                    </div>
+                    
+                    <div class="flex justify-between items-center bg-emerald-950/60 p-2 rounded-xl text-xs border border-amber-400/30">
+                        <span class="flex items-center gap-1.5 font-bold text-amber-300">
+                            <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+                            <span id="p1StatName">Pemain 1</span>
+                        </span>
+                        <span class="font-fredoka text-amber-200">Petak <span id="p1PosText">1</span></span>
+                    </div>
+
+                    <div id="p2StatRow" class="flex justify-between items-center bg-emerald-950/60 p-2 rounded-xl text-xs border border-cyan-400/30">
+                        <span class="flex items-center gap-1.5 font-bold text-cyan-300">
+                            <span class="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span>
+                            <span id="p2StatName">Pemain 2</span>
+                        </span>
+                        <span class="font-fredoka text-cyan-200">Petak <span id="p2PosText">1</span></span>
+                    </div>
+                </div>
+
+                <!-- Log Aktivitas Game -->
+                <div class="glass-card p-3.5 rounded-2xl border border-emerald-500/30 flex-1 flex flex-col h-48 lg:h-auto">
+                    <div class="text-xs font-bold text-amber-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fas fa-history text-amber-400"></i> Riwayat Langkah
+                    </div>
+                    <div id="gameLog" class="flex-1 overflow-y-auto space-y-1.5 pr-1 text-[11px] text-emerald-100">
+                        <p class="text-amber-200/80 italic">Permainan dimulai dari petak 1 (Masjidil Haram)...</p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- ================= HALAMAN 3: HASIL PENUTUP ================= -->
+        <section id="resultPage" class="hidden glass-card rounded-3xl p-6 sm:p-8 shadow-2xl text-center max-w-md mx-auto w-full my-auto border border-amber-500/40">
+            <div class="w-20 h-20 mx-auto rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-4xl mb-3 text-amber-300 shadow-xl">
+                🏆
+            </div>
+
+            <h2 class="font-fredoka text-2xl sm:text-3xl text-amber-300 mb-1">Mencapai Puncak Masjidil Haram!</h2>
+            <p class="text-xs text-emerald-200 mb-5">Selamat! Kamu berhasil menuntaskan penjelajahan petak 100.</p>
+
+            <div class="bg-emerald-950/80 rounded-2xl p-4 border border-emerald-700/80 mb-6 space-y-2 text-xs">
+                <div class="flex justify-between items-center border-b border-emerald-800 pb-2">
+                    <span class="text-emerald-300">Juara Pertama:</span>
+                    <span id="winnerName" class="font-bold text-amber-300 text-sm">Pemain 1</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-emerald-300">Total Soal Dijawab Benar:</span>
+                    <span id="quizCorrectCount" class="font-bold text-emerald-200">5/5</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="startGame()" class="py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg hover:opacity-90 transition">
+                    <i class="fas fa-redo me-1"></i> Main Lagi
+                </button>
+                <button onclick="showMainMenu()" class="py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-emerald-200 font-bold text-xs uppercase tracking-wider border border-emerald-700 transition">
+                    <i class="fas fa-home me-1"></i> Menu Utama
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL POPUP KUIS SURAH AL-FATIHAH -->
+    <div id="quizModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card max-w-lg w-full p-5 sm:p-6 rounded-3xl border border-amber-400/50 shadow-2xl text-left space-y-4 relative">
+            
+            <div class="flex items-center justify-between border-b border-emerald-700/60 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg font-bold border border-amber-400/40">📖</span>
+                    <div>
+                        <h3 class="font-fredoka text-amber-300 text-sm sm:text-base">Tantangan Al-Fatihah</h3>
+                        <p class="text-[10px] text-emerald-200">Jawab dengan benar untuk mendapat bonus langkah!</p>
+                    </div>
+                </div>
+                <span id="quizNumberBadge" class="text-[10px] bg-amber-500 text-slate-950 font-bold px-2.5 py-1 rounded-full uppercase">Soal 1/5</span>
+            </div>
+
+            <!-- Teks Soal -->
+            <div>
+                <p id="quizQuestion" class="text-xs sm:text-sm text-white font-medium leading-relaxed">
+                    -- Teks Soal --
+                </p>
+            </div>
+
+            <!-- Pilihan Jawaban A, B, C, D -->
+            <div id="quizOptions" class="space-y-2">
+                <!-- Injected dynamically -->
+            </div>
+
+            <!-- Umpan Balik / Edukasi -->
+            <div id="quizFeedback" class="hidden p-3 rounded-xl text-xs space-y-1">
+                <p id="feedbackText" class="font-bold"></p>
+                <p id="feedbackEdu" class="text-[11px] leading-snug opacity-90"></p>
+            </div>
+
+            <button id="closeQuizBtn" onclick="closeQuizModal()" class="hidden w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider">
+                Lanjutkan Perjalanan
+            </button>
+        </div>
+    </div>
+
+
+    <!-- AUDIO SYNTHESIZER (WEB AUDIO API) -->
+    <script>
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioCtx();
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'dice') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'step') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
+            } else if (type === 'ladder') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'snake') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.linearRampToValueAtTime(200, now + 0.35);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now); osc.stop(now + 0.35);
+            } else if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.setValueAtTime(150, now + 0.12);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundIcon').className = soundEnabled ? 'fas fa-volume-up text-amber-300' : 'fas fa-volume-mute text-slate-400';
+        }
+    </script>
+
+    <!-- LOGIKA UTAMA GAME ULAR TANGGA -->
+    <script>
+        // 1. Data Soal Surah Al-Fatihah (5 Soal Mendalam)
+        const quizList = [
+            {
+                id: 1,
+                question: "Apa arti dari nama Surah 'Al-Fatihah'?",
+                options: ["Pembukaan", "Pertolongan", "Mulia", "Puncak Al-Qur'an"],
+                correct: 0,
+                edu: "Al-Fatihah dinamakan 'Pembukaan' karena menjadi surah pertama yang membuka susunan mushaf Al-Qur'an."
+            },
+            {
+                id: 2,
+                question: "Berapa jumlah ayat dalam Surah Al-Fatihah?",
+                options: ["5 Ayat", "6 Ayat", "7 Ayat", "8 Ayat"],
+                correct: 2,
+                edu: "Surah Al-Fatihah terdiri dari 7 ayat dan dinamakan juga 'As-Sab'ul Mathani' (7 ayat yang diulang-ulang)."
+            },
+            {
+                id: 3,
+                question: "Salah satu nama lain Surah Al-Fatihah adalah 'Ummul Qur'an', yang berarti...",
+                options: ["Induk Al-Qur'an", "Cahaya Al-Qur'an", "Hati Al-Qur'an", "Pelindung Al-Qur'an"],
+                correct: 0,
+                edu: "Dinamakan Ummul Qur'an (Induk Al-Qur'an) karena mencakup inti seluruh ajaran tauhid dan hukum Islam."
+            },
+            {
+                id: 4,
+                question: "Di kota manakah Surah Al-Fatihah diturunkan (golongan surah)?",
+                options: ["Madinah (Madaniyah)", "Makkah (Makkiyah)", "Yerusalem", "Mesir"],
+                correct: 1,
+                edu: "Surah Al-Fatihah diturunkan di Makkah sebelum Rasulullah SAW hijrah, sehingga tergolong Surah Makkiyah."
+            },
+            {
+                id: 5,
+                question: "Ayat 'Iyyaka na'budu wa iyyaka nasta'in' mengajarkan prinsip utama yaitu...",
+                options: ["Hanya kepada Allah kita menyembah dan memohon pertolongan", "Perintah berpuasa", "Anjuran bersedekah", "Kisah para Nabi"],
+                correct: 0,
+                edu: "Ayat ke-5 menegaskan murni tauhid ibadah & isti'anah (memohon pertolongan) hanya kepada Allah SWT."
+            }
+        ];
+
+        // 2. Data Masjid-Masjid Menawan Dunia
+        const mosqueList = {
+            1: { name: "Masjidil Haram", loc: "Makkah, Arab Saudi", desc: "Masjid tersuci dan terbesar di dunia tempat Ka'bah berada." },
+            10: { name: "Masjid Nabawi", loc: "Madinah, Arab Saudi", desc: "Masjid tempat makam Rasulullah SAW dengan kubah hijau khasnya." },
+            25: { name: "Masjid Al-Aqsa", loc: "Yerusalem, Palestina", desc: "Kiblat pertama umat Islam dan tempat peristiwa Isra Mi'raj." },
+            40: { name: "Masjid Sheikh Zayed", loc: "Abu Dhabi, UEA", desc: "Masjid megah berkubah putih marmer dengan arsitektur klasik modern." },
+            60: { name: "Masjid Hagia Sophia", loc: "Istanbul, Turki", desc: "Masjid bersejarah dengan kubah raksasa dan menara megah." },
+            80: { name: "Masjid Istiqlal", loc: "Jakarta, Indonesia", desc: "Masjid terbesar di Asia Tenggara sebagai simbol kemerdekaan." },
+            100: { name: "Puncak Masjidil Haram", loc: "Makkah", desc: "Selamat! Kamu telah menyelesaikan petualangan masjid dunia!" }
+        };
+
+        // 3. Tangga (Menara) & Peruncuran (Pilar Lengkung)
+        const ladders = {
+            4: 22,
+            14: 37,
+            28: 55,
+            42: 63,
+            54: 86,
+            71: 92
+        };
+
+        const snakes = {
+            29: 9,
+            38: 15,
+            62: 41,
+            88: 51,
+            95: 73,
+            98: 79
+        };
+
+        // Petak Kuis Khusus (Al-Qur'an)
+        const quizTiles = [8, 20, 35, 50, 68, 82];
+
+        // State Permainan
+        let gameMode = 'single'; // 'single' atau 'vs'
+        let p1 = { name: "Pemain 1", pos: 1, isAI: false };
+        let p2 = { name: "Ustaz AI", pos: 1, isAI: true };
+        let activePlayerIndex = 0; // 0 = P1, 1 = P2/AI
+        let isRolling = false;
+        let quizIndexCounter = 0;
+        let correctAnswersCount = 0;
+
+        // Element Canvas & Grid
+        const canvas = document.getElementById('boardCanvas');
+        const ctx = canvas.getContext('2d');
+
+        window.addEventListener('load', () => {
+            initBoardGrid();
+            resizeCanvas();
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                drawLaddersAndSnakes();
+                updatePawnPositions();
+            });
+        });
+
+        // Inisialisasi Mode Permainan
+        function selectMode(mode) {
+            gameMode = mode;
+            const btnSingle = document.getElementById('btnModeSingle');
+            const btnVs = document.getElementById('btnModeVs');
+            const p2Group = document.getElementById('p2InputGroup');
+
+            if (mode === 'single') {
+                btnSingle.className = "mode-btn active p-3 rounded-2xl border-2 border-amber-400 bg-amber-500/20 text-center flex flex-col items-center gap-1 transition";
+                btnVs.className = "mode-btn p-3 rounded-2xl border-2 border-emerald-700 bg-emerald-900/40 text-center flex flex-col items-center gap-1 transition opacity-70";
+                p2Group.classList.add('hidden');
+                p2 = { name: "Ustaz AI", pos: 1, isAI: true };
+            } else {
+                btnVs.className = "mode-btn active p-3 rounded-2xl border-2 border-cyan-400 bg-cyan-500/20 text-center flex flex-col items-center gap-1 transition";
+                btnSingle.className = "mode-btn p-3 rounded-2xl border-2 border-emerald-700 bg-emerald-900/40 text-center flex flex-col items-center gap-1 transition opacity-70";
+                p2Group.classList.remove('hidden');
+                p2 = { name: "Pemain 2", pos: 1, isAI: false };
+            }
+            playSound('dice');
+        }
+
+        function showMainMenu() {
+            document.getElementById('menuPage').classList.remove('hidden');
+            document.getElementById('gamePage').classList.add('hidden');
+            document.getElementById('resultPage').classList.add('hidden');
+        }
+
+        function startGame() {
+            p1.name = document.getElementById('p1Input').value.trim() || "Pemain 1";
+            p1.pos = 1;
+
+            if (gameMode === 'vs') {
+                p2.name = document.getElementById('p2Input').value.trim() || "Pemain 2";
+                p2.isAI = false;
+            } else {
+                p2.name = "Ustaz AI";
+                p2.isAI = true;
+            }
+            p2.pos = 1;
+
+            activePlayerIndex = 0;
+            quizIndexCounter = 0;
+            correctAnswersCount = 0;
+
+            document.getElementById('p1StatName').innerText = p1.name;
+            document.getElementById('p2StatName').innerText = p2.name;
+            document.getElementById('p1PosText').innerText = "1";
+            document.getElementById('p2PosText').innerText = "1";
+
+            document.getElementById('gameLog').innerHTML = '<p class="text-amber-200/80 italic">Permainan dimulai dari petak 1 (Masjidil Haram)...</p>';
+
+            document.getElementById('menuPage').classList.add('hidden');
+            document.getElementById('resultPage').classList.add('hidden');
+            document.getElementById('gamePage').classList.remove('hidden');
+
+            updateTurnUI();
+            setTimeout(() => {
+                resizeCanvas();
+                drawLaddersAndSnakes();
+                updatePawnPositions();
+            }, 100);
+        }
+
+        // Render Grid 10x10 Zig-zag (1 Sampai 100)
+        function initBoardGrid() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+
+            for (let row = 9; row >= 0; row--) {
+                const isEvenRow = (9 - row) % 2 === 1;
+                for (let col = 0; col < 10; col++) {
+                    const actualCol = isEvenRow ? (9 - col) : col;
+                    const tileNum = (row * 10) + actualCol + 1;
+
+                    const cell = document.createElement('div');
+                    cell.id = `tile-${tileNum}`;
+                    cell.className = `board-cell ${(row + col) % 2 === 0 ? 'cell-even' : 'cell-odd'}`;
+
+                    let iconMarker = '';
+                    if (quizTiles.includes(tileNum)) {
+                        cell.classList.add('cell-special');
+                        iconMarker = '<span class="text-[9px]">📖</span>';
+                    } else if (ladders[tileNum]) {
+                        iconMarker = '<span class="text-[9px]">🕌</span>';
+                    } else if (snakes[tileNum]) {
+                        iconMarker = '<span class="text-[9px]">🌀</span>';
+                    }
+
+                    cell.innerHTML = `
+                        <div class="flex justify-between w-full items-center">
+                            <span>${tileNum}</span>
+                            ${iconMarker}
+                        </div>
+                    `;
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Resize & Canvas Line Rendering
+        function resizeCanvas() {
+            const grid = document.getElementById('boardGrid');
+            if (!grid) return;
+            canvas.width = grid.clientWidth;
+            canvas.height = grid.clientHeight;
+        }
+
+        function getTileCenter(tileNum) {
+            const cell = document.getElementById(`tile-${tileNum}`);
+            const grid = document.getElementById('boardGrid');
+            if (!cell || !grid) return { x: 0, y: 0 };
+
+            const cellRect = cell.getBoundingClientRect();
+            const gridRect = grid.getBoundingClientRect();
+
+            return {
+                x: (cellRect.left - gridRect.left) + cellRect.width / 2,
+                y: (cellRect.top - gridRect.top) + cellRect.height / 2
+            };
+        }
+
+        function drawLaddersAndSnakes() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Ladders (Menara Emas)
+            for (let start in ladders) {
+                const end = ladders[start];
+                const p1 = getTileCenter(start);
+                const p2 = getTileCenter(end);
+
+                ctx.save();
+                ctx.strokeStyle = '#D4AF37'; // Gold
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+
+                // Ladder Rungs
+                ctx.strokeStyle = '#F59E0B';
+                ctx.lineWidth = 2;
+                const steps = 5;
+                for (let i = 1; i < steps; i++) {
+                    const rx = p1.x + (p2.x - p1.x) * (i / steps);
+                    const ry = p1.y + (p2.y - p1.y) * (i / steps);
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // Draw Snakes/Luncuran (Pilar Lengkung Merah)
+            for (let start in snakes) {
+                const end = snakes[start];
+                const p1 = getTileCenter(start);
+                const p2 = getTileCenter(end);
+
+                ctx.save();
+                ctx.strokeStyle = '#EF4444'; // Red
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                const midX = (p1.x + p2.x) / 2 + 20;
+                const midY = (p1.y + p2.y) / 2 - 20;
+                ctx.moveTo(p1.x, p1.y);
+                ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function updatePawnPositions() {
+            const p1El = document.getElementById('pawn1');
+            const p2El = document.getElementById('pawn2');
+            const aiEl = document.getElementById('pawnAI');
+
+            const pos1 = getTileCenter(p1.pos);
+            p1El.style.left = `${pos1.x - 11}px`;
+            p1El.style.top = `${pos1.y - 11}px`;
+
+            if (p2.isAI) {
+                p2El.style.display = 'none';
+                aiEl.style.display = 'flex';
+                const posAI = getTileCenter(p2.pos);
+                aiEl.style.left = `${posAI.x - 11 + 4}px`;
+                aiEl.style.top = `${posAI.y - 11 + 4}px`;
+            } else {
+                aiEl.style.display = 'none';
+                p2El.style.display = 'flex';
+                const pos2 = getTileCenter(p2.pos);
+                p2El.style.left = `${pos2.x - 11 + 4}px`;
+                p2El.style.top = `${pos2.y - 11 + 4}px`;
+            }
+
+            document.getElementById('p1PosText').innerText = p1.pos;
+            document.getElementById('p2PosText').innerText = p2.pos;
+
+            // Update Info Masjid jika berada di petak khusus
+            if (mosqueList[p1.pos]) {
+                const m = mosqueList[p1.pos];
+                document.getElementById('mosqueName').innerText = m.name;
+                document.getElementById('mosqueLoc').innerHTML = `<i class="fas fa-location-dot me-1"></i>${m.loc}`;
+                document.getElementById('mosqueDesc').innerText = m.desc;
+            }
+        }
+
+        // Lempar Dadu & Pergerakan Pemain
+        function handleRollDice() {
+            if (isRolling) return;
+            const activePlayer = activePlayerIndex === 0 ? p1 : p2;
+
+            if (activePlayer.isAI) return; // Prevent clicking during AI turn
+
+            executeTurn();
+        }
+
+        function executeTurn() {
+            isRolling = true;
+            document.getElementById('rollDiceBtn').disabled = true;
+
+            const diceCube = document.getElementById('diceCube');
+            diceCube.classList.add('rolling');
+            playSound('dice');
+
+            setTimeout(() => {
+                const diceVal = Math.floor(Math.random() * 6) + 1;
+                diceCube.classList.remove('rolling');
+                diceCube.innerText = diceVal;
+
+                const activePlayer = activePlayerIndex === 0 ? p1 : p2;
+                logEvent(`🎲 ${activePlayer.name} mengocok dadu dan mendapat angka <b>${diceVal}</b>.`);
+
+                movePlayerAnimated(activePlayer, diceVal);
+            }, 600);
+        }
+
+        function movePlayerAnimated(player, steps) {
+            let currentStep = 0;
+
+            const interval = setInterval(() => {
+                if (player.pos < 100) {
+                    player.pos++;
+                    playSound('step');
+                    updatePawnPositions();
+                    currentStep++;
+                }
+
+                if (currentStep >= steps || player.pos === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => checkTileEvents(player), 300);
+                }
+            }, 300);
+        }
+
+        // Cek Pendaratan Petak (Tangga / Luncuran / Kuis)
+        function checkTileEvents(player) {
+            const currentPos = player.pos;
+
+            // 1. Cek Menara Tangga
+            if (ladders[currentPos]) {
+                const targetPos = ladders[currentPos];
+                logEvent(`🕌 MasyaAllah! ${player.name} menemukan Menara Masjid di petak ${currentPos} dan naik ke petak <b>${targetPos}</b>!`);
+                playSound('ladder');
+                player.pos = targetPos;
+                updatePawnPositions();
+            }
+            // 2. Cek Luncuran
+            else if (snakes[currentPos]) {
+                const targetPos = snakes[currentPos];
+                logEvent(`🌀 Opos! ${player.name} tergelincir di petak ${currentPos} dan turun ke petak <b>${targetPos}</b>.`);
+                playSound('snake');
+                player.pos = targetPos;
+                updatePawnPositions();
+            }
+
+            // 3. Check Kuis Surah Al-Fatihah
+            if (quizTiles.includes(currentPos) || quizTiles.includes(player.pos)) {
+                triggerQuiz(player);
+                return;
+            }
+
+            // 4. Cek Menang
+            if (player.pos >= 100) {
+                player.pos = 100;
+                updatePawnPositions();
+                handleWin(player);
+                return;
+            }
+
+            switchTurn();
+        }
+
+        function switchTurn() {
+            activePlayerIndex = activePlayerIndex === 0 ? 1 : 0;
+            updateTurnUI();
+            isRolling = false;
+            document.getElementById('rollDiceBtn').disabled = false;
+
+            const nextPlayer = activePlayerIndex === 0 ? p1 : p2;
+            if (nextPlayer.isAI) {
+                document.getElementById('rollDiceBtn').disabled = true;
+                setTimeout(() => executeTurn(), 1200);
+            }
+        }
+
+        function updateTurnUI() {
+            const activePlayer = activePlayerIndex === 0 ? p1 : p2;
+            document.getElementById('activePlayerName').innerText = activePlayer.name;
+
+            const badge = document.getElementById('activePawnBadge');
+            if (activePlayerIndex === 0) {
+                badge.innerText = "P1";
+                badge.className = "w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xs";
+            } else if (p2.isAI) {
+                badge.innerText = "AI";
+                badge.className = "w-6 h-6 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold text-xs";
+            } else {
+                badge.innerText = "P2";
+                badge.className = "w-6 h-6 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-bold text-xs";
+            }
+        }
+
+        // KUIS AL-FATIHAH LOGIC
+        function triggerQuiz(player) {
+            const q = quizList[quizIndexCounter % quizList.length];
+            quizIndexCounter++;
+
+            document.getElementById('quizNumberBadge').innerText = `Soal ${q.id}/5`;
+            document.getElementById('quizQuestion').innerText = q.question;
+            
+            const optionsBox = document.getElementById('quizOptions');
+            optionsBox.innerHTML = '';
+            document.getElementById('quizFeedback').classList.add('hidden');
+            document.getElementById('closeQuizBtn').classList.add('hidden');
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-2.5 text-left rounded-xl bg-emerald-950/80 border border-emerald-600/80 hover:border-amber-400 text-xs transition flex items-center gap-2";
+                btn.innerHTML = `<span class="w-5 h-5 rounded-full bg-emerald-800 text-amber-300 flex items-center justify-center font-bold text-[10px]">${String.fromCharCode(65 + idx)}</span> <span>${opt}</span>`;
+                btn.onclick = () => handleAnswerQuiz(player, idx, q);
+                optionsBox.appendChild(btn);
+            });
+
+            document.getElementById('quizModal').classList.remove('hidden');
+
+            // If AI Turn, answer automatically after delay
+            if (player.isAI) {
+                setTimeout(() => {
+                    const aiChoice = Math.random() < 0.8 ? q.correct : 0; // AI 80% correct
+                    handleAnswerQuiz(player, aiChoice, q);
+                }, 1500);
+            }
+        }
+
+        function handleAnswerQuiz(player, chosenIdx, q) {
+            const feedbackBox = document.getElementById('quizFeedback');
+            const feedbackText = document.getElementById('feedbackText');
+            const feedbackEdu = document.getElementById('feedbackEdu');
+
+            feedbackBox.classList.remove('hidden');
+
+            if (chosenIdx === q.correct) {
+                playSound('correct');
+                feedbackBox.className = "p-3 rounded-xl text-xs space-y-1 bg-emerald-900/90 text-emerald-100 border border-emerald-400";
+                feedbackText.innerText = "✅ Benar! MasyaAllah, bonus maju 2 petak!";
+                feedbackEdu.innerText = q.edu;
+                correctAnswersCount++;
+
+                player.pos = Math.min(100, player.pos + 2);
+                updatePawnPositions();
+                logEvent(`📖 ${player.name} menjawab kuis dengan <b>BENAR</b> dan maju 2 petak!`);
+            } else {
+                playSound('wrong');
+                feedbackBox.className = "p-3 rounded-xl text-xs space-y-1 bg-red-900/90 text-red-100 border border-red-400";
+                feedbackText.innerText = "❌ Kurang Tepat! Mundur 1 petak.";
+                feedbackEdu.innerText = q.edu;
+
+                player.pos = Math.max(1, player.pos - 1);
+                updatePawnPositions();
+                logEvent(`📖 ${player.name} menjawab kuis kurang tepat dan mundur 1 petak.`);
+            }
+
+            document.querySelectorAll('#quizOptions button').forEach(b => b.disabled = true);
+            document.getElementById('closeQuizBtn').classList.remove('hidden');
+
+            if (player.isAI) {
+                setTimeout(() => closeQuizModal(), 2000);
+            }
+        }
+
+        function closeQuizModal() {
+            document.getElementById('quizModal').classList.add('hidden');
+            const activePlayer = activePlayerIndex === 0 ? p1 : p2;
+            
+            if (activePlayer.pos >= 100) {
+                handleWin(activePlayer);
+            } else {
+                switchTurn();
+            }
+        }
+
+        function logEvent(msg) {
+            const logBox = document.getElementById('gameLog');
+            const p = document.createElement('p');
+            p.className = "text-[11px] border-b border-emerald-800/40 pb-1 leading-snug";
+            p.innerHTML = msg;
+            logBox.prepend(p);
+        }
+
+        function handleWin(winner) {
+            playSound('correct');
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            }
+
+            document.getElementById('winnerName').innerText = winner.name;
+            document.getElementById('quizCorrectCount').innerText = `${correctAnswersCount} Soal Dijawab Benar`;
+
+            document.getElementById('gamePage').classList.add('hidden');
+            document.getElementById('resultPage').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
